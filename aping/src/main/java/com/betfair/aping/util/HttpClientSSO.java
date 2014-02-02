@@ -7,6 +7,8 @@ package com.betfair.aping.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -36,16 +38,25 @@ import org.slf4j.LoggerFactory;
 public class HttpClientSSO {
 
 	private static final int PORT = 443;
-	private static final Logger log = LoggerFactory.getLogger(HttpClientSSO.class);
-	
+	private static final Logger log = LoggerFactory
+			.getLogger(HttpClientSSO.class);
+	private static final ClassLoader classloader = Thread.currentThread()
+			.getContextClassLoader();
+
 	public static String getSessionTokenResponse() {
+		URI resource = null;
+		try {
+			resource = classloader.getResource(
+					AccountConstants.PATH_TO_PRIVATE_KEY).toURI();
+		} catch (URISyntaxException e1) {
+			e1.printStackTrace();
+		}
 		DefaultHttpClient httpClient = new DefaultHttpClient();
 		String responseString = null;
 		try {
 			SSLContext ctx = SSLContext.getInstance("TLS");
 			KeyManager[] keyManagers = getKeyManagers("pkcs12",
-					new FileInputStream(new File(AccountConstants.PATH_TO_PRIVATE_KEY)),
-					"test");
+					new FileInputStream(new File(resource)), "test");
 			ctx.init(keyManagers, null, new SecureRandom());
 			SSLSocketFactory factory = new SSLSocketFactory(ctx,
 					new StrictHostnameVerifier());
@@ -56,17 +67,19 @@ public class HttpClientSSO {
 			HttpPost httpPost = new HttpPost(
 					AccountConstants.ENDPOINT_TO_CERTLOGIN);
 			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
-			nvps.add(new BasicNameValuePair("username",AccountConstants.USERNAME));
-			nvps.add(new BasicNameValuePair("password", AccountConstants.PASSWORD));
+			nvps.add(new BasicNameValuePair("username",
+					AccountConstants.USERNAME));
+			nvps.add(new BasicNameValuePair("password",
+					AccountConstants.PASSWORD));
 
 			httpPost.setEntity(new UrlEncodedFormEntity(nvps));
 			httpPost.setHeader("X-Application", "appkey");
-			log.info("executing request {}",  httpPost.getRequestLine());
+			log.info("executing request {}", httpPost.getRequestLine());
 
 			HttpResponse response = httpClient.execute(httpPost);
 			HttpEntity entity = response.getEntity();
 
-			log.info("Response status line: {}",response.getStatusLine());
+			log.info("Response status line: {}", response.getStatusLine());
 			if (entity != null) {
 				responseString = EntityUtils.toString(entity);
 				log.info("Session token: {}", responseString);
