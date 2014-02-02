@@ -109,8 +109,7 @@ public class ApiNGDemo {
             ApiNGJsonRpcDemo jsonRpcDemo = new ApiNGJsonRpcDemo();
             jsonRpcDemo.start(applicationKey, sessionToken);
         } else {
-            ApiNGJRescriptDemo rescriptDemo = new ApiNGJRescriptDemo();
-            rescriptDemo.start(applicationKey, sessionToken);
+        	System.out.println("No Rescript call");
         }
     }
 
