@@ -91,7 +91,6 @@ public class TestClass {
 
 		List<String> marketIds = new ArrayList<String>();
 		marketIds.add(marketId);
-
 		PriceProjection priceProjection = new PriceProjection();
 		Set<PriceData> priceData = new HashSet<PriceData>();
 		priceData.add(PriceData.EX_ALL_OFFERS);
