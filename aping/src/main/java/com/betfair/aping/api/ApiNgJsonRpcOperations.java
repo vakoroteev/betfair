@@ -97,8 +97,8 @@ public class ApiNgJsonRpcOperations extends ApiNgOperations {
 		String result = getInstance().makeRequest(
 				ApiNgOperation.LISTMARKETCATALOGUE.getOperationName(), params,
 				appKey, ssoId);
-		if (ApiNGDemo.isDebug())
-			System.out.println("\nResponse: " + result);
+		// if (ApiNGDemo.isDebug())
+		System.out.println("\nResponse: " + result);
 
 		ListMarketCatalogueContainer container = JsonConverter.convertFromJson(
 				result, ListMarketCatalogueContainer.class);
