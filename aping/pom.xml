@@ -55,7 +55,12 @@
 
 	<dependencies>
 
-		<!-- out dependencies -->
+		<!-- our dependencies -->
+		<dependency>
+			<groupId>com.couchbase.client</groupId>
+			<artifactId>couchbase-client</artifactId>
+			<version>1.3.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>

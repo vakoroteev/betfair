@@ -1,88 +1,60 @@
 package my.pack.model;
 
-import java.util.Map;
-
+import com.betfair.aping.entities.ExchangePrices;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 public class HorseStatBean {
 
-	private Long timeStamp;
-	private Long startedTimeStamp;
-	private double startedPrise;
-	private double lastTradedVolume;
-	private Map<String, Double> avalToBack;
-	private Map<String, Double> avalToLay;
+	Double totalMatched;
+	ExchangePrices ex;
+	StartPrice startPrice;
+	private Long timestamp;
 
 	public HorseStatBean() {
+
 	}
 
-	public HorseStatBean(Long timeStamp, Long startedTimeStamp,
-			double startedPrise, double lastTradedVolume,
-			Map<String, Double> avalToBack, Map<String, Double> avalToLay) {
-		this.timeStamp = timeStamp;
-		this.startedTimeStamp = startedTimeStamp;
-		this.startedPrise = startedPrise;
-		this.lastTradedVolume = lastTradedVolume;
-		this.avalToBack = avalToBack;
-		this.avalToLay = avalToLay;
+	public HorseStatBean(Double totalMatched, ExchangePrices ex,
+			StartPrice startPrice, Long timestamp) {
+		super();
+		this.totalMatched = totalMatched;
+		this.ex = ex;
+		this.startPrice = startPrice;
+		this.setTimestamp(timestamp);
 	}
 
-	public Long getTimeStamp() {
-		return timeStamp;
+	public Double getTotalMatched() {
+		return totalMatched;
 	}
 
-	public void setTimeStamp(Long timeStamp) {
-		this.timeStamp = timeStamp;
+	public void setTotalMatched(Double totalMatched) {
+		this.totalMatched = totalMatched;
 	}
 
-	public Long getStartedTimeStamp() {
-		return startedTimeStamp;
+	public ExchangePrices getEx() {
+		return ex;
 	}
 
-	public void setStartedTimeStamp(Long startedTimeStamp) {
-		this.startedTimeStamp = startedTimeStamp;
+	public void setEx(ExchangePrices ex) {
+		this.ex = ex;
 	}
 
-	public double getStartedPrise() {
-		return startedPrise;
+	public StartPrice getStartPrice() {
+		return startPrice;
 	}
 
-	public void setStartedPrise(double startedPrise) {
-		this.startedPrise = startedPrise;
+	public void setStartPrice(StartPrice startPrice) {
+		this.startPrice = startPrice;
 	}
 
-	public double getLastTradedVolume() {
-		return lastTradedVolume;
+	public Long getTimestamp() {
+		return timestamp;
 	}
 
-	public void setLastTradedVolume(double lastTradedVolume) {
-		this.lastTradedVolume = lastTradedVolume;
-	}
-
-	public Map<String, Double> getAvalToBack() {
-		return avalToBack;
-	}
-
-	public void setAvalToBack(Map<String, Double> avalToBack) {
-		this.avalToBack = avalToBack;
-	}
-
-	public Map<String, Double> getAvalToLay() {
-		return avalToLay;
-	}
-
-	public void setAvalToLay(Map<String, Double> avalToLay) {
-		this.avalToLay = avalToLay;
-	}
-
-	@Override
-	public String toString() {
-		return "HorseStatBean [timeStamp=" + timeStamp + ", startedTimeStamp="
-				+ startedTimeStamp + ", startedPrise=" + startedPrise
-				+ ", lastTradedVolume=" + lastTradedVolume + ", avalToBack="
-				+ avalToBack + ", avalToLay=" + avalToLay + "]";
+	public void setTimestamp(Long timestamp) {
+		this.timestamp = timestamp;
 	}
 
 }
