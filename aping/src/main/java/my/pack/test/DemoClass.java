@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -51,27 +53,33 @@ public class DemoClass {
 
 	public static void main(String[] args) {
 		final int RUNNERS_CNT = 3;
-		final String MARKET_CNT = "5";
+		final String MARKET_CNT = "20";
+		final int MARKET_CNT_FOR_MARKET_BOOK = 5;
 		ApiNgJsonRpcOperations rpcOperator = ApiNgJsonRpcOperations
 				.getInstance();
 
 		final String ssoId = getSessionToken();
 		HashMap<String, Integer> marketCounters = new HashMap<String, Integer>();
-		for (int j = 0; j < 3; j++) {
-			List<MarketCatalogue> marketCatalogues = demoListMarketCatalogue(
-					rpcOperator, MARKET_CNT, ssoId);
-			List<String> marketIds = new ArrayList<String>();
-			for (MarketCatalogue marketCatalogue : marketCatalogues) {
-				String marketId = marketCatalogue.getMarketId();
-				marketIds.add(marketId);
-				if (marketCounters.get(marketId) == null) {
-					marketCounters.put(marketId, 0);
-				}
-				System.out.println(marketCatalogue.getMarketName());
-				System.out.println(marketCatalogue.getDescription()
-						.getMarketTime().getTime());
+		List<MarketCatalogue> marketCatalogues = demoListMarketCatalogue(
+				rpcOperator, MARKET_CNT, ssoId);
+		Queue<String> allMarketIds = new LinkedList<String>();
+		for (MarketCatalogue marketCatalogue : marketCatalogues) {
+			String marketId = marketCatalogue.getMarketId();
+			allMarketIds.add(marketId);
+			if (marketCounters.get(marketId) == null) {
+				marketCounters.put(marketId, 0);
 			}
-			// Prepare params for listMarketBook
+			System.out.println(marketCatalogue.getMarketName());
+			System.out.println(marketCatalogue.getDescription().getMarketTime()
+					.getTime());
+		}
+		// Prepare params for listMarketBook
+		List<String> marketIds = new ArrayList<String>();
+		for (int k = 0; k < MARKET_CNT_FOR_MARKET_BOOK; k++) {
+			// TODO: if poll return null???
+			marketIds.add(allMarketIds.poll());
+		}
+		for (int j = 0; j < 3; j++) {
 			PriceProjection priceProjection = new PriceProjection();
 			Set<PriceData> priceData = new HashSet<PriceData>();
 			priceData.add(PriceData.EX_ALL_OFFERS);
@@ -86,6 +94,16 @@ public class DemoClass {
 				listMarketBook = rpcOperator.listMarketBook(marketIds,
 						priceProjection, OrderProjection.ALL,
 						MatchProjection.NO_ROLLUP, "US", appKey, ssoId);
+				// TODO: check assumption that if not found marketId nothing
+				// will returns
+				if (listMarketBook.size() < marketIds.size()) {
+					marketIds.remove(0);
+					if (allMarketIds.peek() != null) {
+						marketIds.add(allMarketIds.poll());
+					} else {
+						// TODO: stop observer or something else
+					}
+				}
 			} catch (APINGException e) {
 				e.printStackTrace();
 			}
@@ -110,6 +128,7 @@ public class DemoClass {
 							startPrice, timestamp);
 					try {
 						String doc = om.writeValueAsString(horse);
+						System.out.println(doc);
 						// TODO: think about async
 						cbClient.set(marketId + "_" + selectionId + "_" + num,
 								doc, PersistTo.ZERO).get();
@@ -118,6 +137,8 @@ public class DemoClass {
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					} catch (ExecutionException e) {
+						e.printStackTrace();
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
