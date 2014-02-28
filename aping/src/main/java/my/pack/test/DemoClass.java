@@ -48,103 +48,110 @@ public class DemoClass {
 
 	private static final Logger log = LoggerFactory.getLogger(DemoClass.class);
 	private static final ObjectMapper om = new ObjectMapper();
-	private static final CouchbaseClient cbClient = CouchbaseConnector
-			.getClient("other");
+	private static final CouchbaseClient cbClient = null;
+//	CouchbaseConnector
+//			.getClient("horses");
 
 	public static void main(String[] args) {
-		final int RUNNERS_CNT = 3;
-		final String MARKET_CNT = "20";
-		final int MARKET_CNT_FOR_MARKET_BOOK = 5;
-		ApiNgJsonRpcOperations rpcOperator = ApiNgJsonRpcOperations
-				.getInstance();
-
-		final String ssoId = getSessionToken();
-		HashMap<String, Integer> marketCounters = new HashMap<String, Integer>();
-		List<MarketCatalogue> marketCatalogues = demoListMarketCatalogue(
-				rpcOperator, MARKET_CNT, ssoId);
-		Queue<String> allMarketIds = new LinkedList<String>();
-		for (MarketCatalogue marketCatalogue : marketCatalogues) {
-			String marketId = marketCatalogue.getMarketId();
-			allMarketIds.add(marketId);
-			if (marketCounters.get(marketId) == null) {
-				marketCounters.put(marketId, 0);
+		try {
+			final int RUNNERS_CNT = 3;
+			final String MARKET_CNT = "20";
+			final int MARKET_CNT_FOR_MARKET_BOOK = 5;
+			ApiNgJsonRpcOperations rpcOperator = ApiNgJsonRpcOperations
+					.getInstance();
+			final String ssoId = getSessionToken();
+			HashMap<String, Integer> marketCounters = new HashMap<String, Integer>();
+			List<MarketCatalogue> marketCatalogues = demoListMarketCatalogue(
+					rpcOperator, MARKET_CNT, ssoId);
+			Queue<String> allMarketIds = new LinkedList<String>();
+			for (MarketCatalogue marketCatalogue : marketCatalogues) {
+				String marketId = marketCatalogue.getMarketId();
+				allMarketIds.add(marketId);
+				if (marketCounters.get(marketId) == null) {
+					marketCounters.put(marketId, 0);
+				}
+				System.out.println(marketCatalogue.getMarketName());
+				System.out.println(marketCatalogue.getDescription()
+						.getMarketTime().getTime());
 			}
-			System.out.println(marketCatalogue.getMarketName());
-			System.out.println(marketCatalogue.getDescription().getMarketTime()
-					.getTime());
-		}
-		// Prepare params for listMarketBook
-		List<String> marketIds = new ArrayList<String>();
-		for (int k = 0; k < MARKET_CNT_FOR_MARKET_BOOK; k++) {
-			// TODO: if poll return null???
-			marketIds.add(allMarketIds.poll());
-		}
-		for (int j = 0; j < 3; j++) {
-			PriceProjection priceProjection = new PriceProjection();
-			Set<PriceData> priceData = new HashSet<PriceData>();
-			priceData.add(PriceData.EX_ALL_OFFERS);
-			priceData.add(PriceData.EX_TRADED);
-			priceData.add(PriceData.SP_AVAILABLE);
-			priceData.add(PriceData.SP_TRADED);
-			priceProjection.setPriceData(priceData);
+			// Prepare params for listMarketBook
+			List<String> marketIds = new ArrayList<String>();
+			for (int k = 0; k < MARKET_CNT_FOR_MARKET_BOOK; k++) {
+				// TODO: if poll return null???
+				marketIds.add(allMarketIds.poll());
+			}
+			boolean observ = true;
+			while (observ) {
+				PriceProjection priceProjection = new PriceProjection();
+				Set<PriceData> priceData = new HashSet<PriceData>();
+				priceData.add(PriceData.EX_ALL_OFFERS);
+				priceData.add(PriceData.EX_TRADED);
+				priceData.add(PriceData.SP_AVAILABLE);
+				priceData.add(PriceData.SP_TRADED);
+				priceProjection.setPriceData(priceData);
 
-			final String appKey = AccountConstants.APP_KEY;
-			List<MarketBook> listMarketBook = null;
-			try {
-				listMarketBook = rpcOperator.listMarketBook(marketIds,
-						priceProjection, OrderProjection.ALL,
-						MatchProjection.NO_ROLLUP, "US", appKey, ssoId);
-				// TODO: check assumption that if not found marketId nothing
-				// will returns
-				if (listMarketBook.size() < marketIds.size()) {
-					marketIds.remove(0);
-					if (allMarketIds.peek() != null) {
-						marketIds.add(allMarketIds.poll());
-					} else {
-						// TODO: stop observer or something else
+				final String appKey = AccountConstants.APP_KEY;
+				List<MarketBook> listMarketBook = null;
+				try {
+					listMarketBook = rpcOperator.listMarketBook(marketIds,
+							priceProjection, OrderProjection.ALL,
+							MatchProjection.NO_ROLLUP, "US", appKey, ssoId);
+					// TODO: check assumption that if not found marketId nothing
+					// will returns
+					if (listMarketBook.size() < marketIds.size()) {
+						marketIds.remove(0);
+						if (allMarketIds.peek() != null) {
+							marketIds.add(allMarketIds.poll());
+						} else {
+							// TODO: stop observer or something else
+							observ = false;
+						}
+					}
+				} catch (APINGException e) {
+					e.printStackTrace();
+				}
+
+				for (MarketBook marketBook : listMarketBook) {
+					String marketId = marketBook.getMarketId();
+					Integer cnt = marketCounters.get(marketId);
+					String num = String.valueOf(cnt);
+					marketCounters.put(marketId, ++cnt);
+					List<Runner> runners = marketBook.getRunners();
+					for (int i = 0; i < RUNNERS_CNT; i++) {
+						Runner runner = runners.get(i);
+						Long selectionId = runner.getSelectionId();
+						Double totalMatched = runner.getTotalMatched();
+						ExchangePrices ex = runner.getEx();
+						StartingPrices sp = runner.getSp();
+						StartPrice startPrice = new StartPrice(
+								sp.getActualSP(), sp.getFarPrice(),
+								sp.getNearPrice());
+						// TODO: use Calendar!!!
+						long timestamp = System.currentTimeMillis();
+						HorseStatBean horse = new HorseStatBean(totalMatched,
+								ex, startPrice, timestamp);
+						try {
+							String doc = om.writeValueAsString(horse);
+							System.out.println(doc);
+							// TODO: think about async
+							cbClient.set(
+									marketId + "_" + selectionId + "_" + num,
+									doc, PersistTo.ZERO).get();
+						} catch (JsonProcessingException e) {
+							e.printStackTrace();
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						} catch (ExecutionException e) {
+							e.printStackTrace();
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
-			} catch (APINGException e) {
-				e.printStackTrace();
 			}
-
-			for (MarketBook marketBook : listMarketBook) {
-				String marketId = marketBook.getMarketId();
-				Integer cnt = marketCounters.get(marketId);
-				String num = String.valueOf(cnt);
-				marketCounters.put(marketId, ++cnt);
-				List<Runner> runners = marketBook.getRunners();
-				for (int i = 0; i < RUNNERS_CNT; i++) {
-					Runner runner = runners.get(i);
-					Long selectionId = runner.getSelectionId();
-					Double totalMatched = runner.getTotalMatched();
-					ExchangePrices ex = runner.getEx();
-					StartingPrices sp = runner.getSp();
-					StartPrice startPrice = new StartPrice(sp.getActualSP(),
-							sp.getFarPrice(), sp.getNearPrice());
-					// TODO: use Calendar!!!
-					long timestamp = System.currentTimeMillis();
-					HorseStatBean horse = new HorseStatBean(totalMatched, ex,
-							startPrice, timestamp);
-					try {
-						String doc = om.writeValueAsString(horse);
-						System.out.println(doc);
-						// TODO: think about async
-						cbClient.set(marketId + "_" + selectionId + "_" + num,
-								doc, PersistTo.ZERO).get();
-					} catch (JsonProcessingException e) {
-						e.printStackTrace();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					} catch (ExecutionException e) {
-						e.printStackTrace();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			}
+		} finally {
+			cbClient.shutdown();
 		}
-		cbClient.shutdown();
 	}
 
 	public static List<MarketCatalogue> demoListMarketCatalogue(
@@ -161,7 +168,13 @@ public class DemoClass {
 		marketCountries.add("GB");
 		filter.setMarketCountries(marketCountries);
 		TimeRange time = new TimeRange();
+//		Calendar calendar = Calendar.getInstance(TimeZone
+//				.getTimeZone("Etc/UTC"));
 		time.setFrom(new Date());
+//		calendar.set(Calendar.HOUR_OF_DAY, 23);
+//		calendar.set(Calendar.MINUTE, 59);
+//		calendar.set(Calendar.SECOND, 59);
+//		time.setTo(calendar.getTime());
 		filter.setMarketStartTime(time);
 		Set<String> marketTypeCodes = new HashSet<String>();
 		marketTypeCodes.add("WIN");
@@ -200,5 +213,7 @@ public class DemoClass {
 			log.error("Exception while processing session token: {}", e);
 		}
 		return sessionToken;
+//		return "rttaPMbihBtf2Qh/II3TfjKkK1eToBY3Q3bL8Y2NoTg=";
+//		return "uZlBpp+PxF1YkKVtpGHLbYoviTh3MZwQm/E9Xxm3yWI=";
 	}
 }
