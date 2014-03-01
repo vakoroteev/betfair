@@ -9,14 +9,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import my.pack.model.HorseStatBean;
 import my.pack.model.StartPrice;
 import my.pack.util.AccountConstants;
 import my.pack.util.ApplicationConstants;
-import my.pack.util.CouchbaseConnector;
-import net.spy.memcached.PersistTo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +46,9 @@ public class DemoClass {
 	private static final Logger log = LoggerFactory.getLogger(DemoClass.class);
 	private static final ObjectMapper om = new ObjectMapper();
 	private static final CouchbaseClient cbClient = null;
-//	CouchbaseConnector
-//			.getClient("horses");
+
+	// CouchbaseConnector
+	// .getClient("horses");
 
 	public static void main(String[] args) {
 		try {
@@ -98,10 +96,17 @@ public class DemoClass {
 							MatchProjection.NO_ROLLUP, "US", appKey, ssoId);
 					// TODO: check assumption that if not found marketId nothing
 					// will returns
-					if (listMarketBook.size() < marketIds.size()) {
+					int activeMarketsCount = marketIds.size();
+					for (MarketBook marketBook : listMarketBook) {
+						if (marketBook.getStatus().equalsIgnoreCase("suspended") || marketBook.getStatus().equalsIgnoreCase("closed")) {
+							activeMarketsCount--;
+						}
+					}
+					while (activeMarketsCount < marketIds.size()) {
 						marketIds.remove(0);
 						if (allMarketIds.peek() != null) {
 							marketIds.add(allMarketIds.poll());
+							activeMarketsCount++;
 						} else {
 							// TODO: stop observer or something else
 							observ = false;
@@ -110,7 +115,9 @@ public class DemoClass {
 				} catch (APINGException e) {
 					e.printStackTrace();
 				}
-
+				for (MarketBook marketBook : listMarketBook) {
+					System.out.print(marketBook.getMarketId() + ", ");
+				}
 				for (MarketBook marketBook : listMarketBook) {
 					String marketId = marketBook.getMarketId();
 					Integer cnt = marketCounters.get(marketId);
@@ -123,25 +130,27 @@ public class DemoClass {
 						Double totalMatched = runner.getTotalMatched();
 						ExchangePrices ex = runner.getEx();
 						StartingPrices sp = runner.getSp();
-						StartPrice startPrice = new StartPrice(
-								sp.getActualSP(), sp.getFarPrice(),
-								sp.getNearPrice());
+						// TODO: sp may be null
+						// TODO: uncomment
+						StartPrice startPrice = null;
+//						new StartPrice(
+//								sp.getActualSP(), sp.getFarPrice(),
+//								sp.getNearPrice());
 						// TODO: use Calendar!!!
 						long timestamp = System.currentTimeMillis();
 						HorseStatBean horse = new HorseStatBean(totalMatched,
 								ex, startPrice, timestamp);
 						try {
 							String doc = om.writeValueAsString(horse);
-							System.out.println(doc);
 							// TODO: think about async
-							cbClient.set(
-									marketId + "_" + selectionId + "_" + num,
-									doc, PersistTo.ZERO).get();
+							// cbClient.set(
+							// marketId + "_" + selectionId + "_" + num,
+							// doc, PersistTo.ZERO).get();
 						} catch (JsonProcessingException e) {
 							e.printStackTrace();
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						} catch (ExecutionException e) {
+							// } catch (InterruptedException e) {
+							// e.printStackTrace();
+							// } catch (ExecutionException e) {
 							e.printStackTrace();
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -150,7 +159,7 @@ public class DemoClass {
 				}
 			}
 		} finally {
-			cbClient.shutdown();
+//			cbClient.shutdown();
 		}
 	}
 
@@ -165,16 +174,16 @@ public class DemoClass {
 		eventTypeIds.add(ApplicationConstants.HORSE_EVENT_TYPE);
 		filter.setEventTypeIds(eventTypeIds);
 		Set<String> marketCountries = new HashSet<String>();
-		marketCountries.add("GB");
+		marketCountries.add("US");
 		filter.setMarketCountries(marketCountries);
 		TimeRange time = new TimeRange();
-//		Calendar calendar = Calendar.getInstance(TimeZone
-//				.getTimeZone("Etc/UTC"));
+//		 Calendar calendar = Calendar.getInstance(TimeZone
+//		 .getTimeZone("Etc/UTC"));
 		time.setFrom(new Date());
-//		calendar.set(Calendar.HOUR_OF_DAY, 23);
-//		calendar.set(Calendar.MINUTE, 59);
-//		calendar.set(Calendar.SECOND, 59);
-//		time.setTo(calendar.getTime());
+		// calendar.set(Calendar.HOUR_OF_DAY, 23);
+		// calendar.set(Calendar.MINUTE, 59);
+		// calendar.set(Calendar.SECOND, 59);
+		// time.setTo(calendar.getTime());
 		filter.setMarketStartTime(time);
 		Set<String> marketTypeCodes = new HashSet<String>();
 		marketTypeCodes.add("WIN");
@@ -212,8 +221,9 @@ public class DemoClass {
 		} catch (IOException e) {
 			log.error("Exception while processing session token: {}", e);
 		}
-		return sessionToken;
-//		return "rttaPMbihBtf2Qh/II3TfjKkK1eToBY3Q3bL8Y2NoTg=";
-//		return "uZlBpp+PxF1YkKVtpGHLbYoviTh3MZwQm/E9Xxm3yWI=";
+//		return sessionToken;
+		return "OpUSjth8F6Xvk+ZMjHgp1gVoxi4NzXd33D8sYOtt70o=";
+		// return "rttaPMbihBtf2Qh/II3TfjKkK1eToBY3Q3bL8Y2NoTg=";
+		// return "uZlBpp+PxF1YkKVtpGHLbYoviTh3MZwQm/E9Xxm3yWI=";
 	}
 }
