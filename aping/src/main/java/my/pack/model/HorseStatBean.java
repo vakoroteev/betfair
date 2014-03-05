@@ -2,14 +2,18 @@ package my.pack.model;
 
 import com.betfair.aping.entities.ExchangePrices;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 public class HorseStatBean {
 
+	@JsonProperty("tm")
 	Double totalMatched;
 	ExchangePrices ex;
+	@JsonProperty("sp")
 	StartPrice startPrice;
+	@JsonProperty("tmst")
 	private Long timestamp;
 
 	public HorseStatBean() {

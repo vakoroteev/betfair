@@ -2,12 +2,16 @@ package my.pack.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(Include.NON_NULL)
 public class StartPrice {
 
+	@JsonProperty("ap")
 	Double actualPrice;
+	@JsonProperty("fp")
 	Double farFpice;
+	@JsonProperty("np")
 	Double nearPrice;
 
 	public StartPrice() {

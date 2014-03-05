@@ -9,11 +9,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import my.pack.model.HorseStatBean;
 import my.pack.model.StartPrice;
 import my.pack.util.AccountConstants;
 import my.pack.util.ApplicationConstants;
+import my.pack.util.CouchbaseConnector;
+import net.spy.memcached.PersistTo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,26 +44,35 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DemoClass {
 
+	private static final String MARKET_COUNTRY = "GB";
+
 	private static final String SESSION_TOKEN = "sessionToken";
 
 	private static final Logger log = LoggerFactory.getLogger(DemoClass.class);
 	private static final ObjectMapper om = new ObjectMapper();
-	private static final CouchbaseClient cbClient = null;
-
-	// CouchbaseConnector
-	// .getClient("horses");
+	private static final CouchbaseClient cbClient = CouchbaseConnector
+			.getClient("horses");
+	private static final ApiNgJsonRpcOperations rpcOperator = ApiNgJsonRpcOperations
+			.getInstance();
+	final static String ssoId = getSessionToken();
 
 	public static void main(String[] args) {
 		try {
 			final int RUNNERS_CNT = 3;
 			final String MARKET_CNT = "20";
 			final int MARKET_CNT_FOR_MARKET_BOOK = 5;
-			ApiNgJsonRpcOperations rpcOperator = ApiNgJsonRpcOperations
-					.getInstance();
-			final String ssoId = getSessionToken();
+
+			try {
+				Thread.sleep(10000L);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
 			HashMap<String, Integer> marketCounters = new HashMap<String, Integer>();
-			List<MarketCatalogue> marketCatalogues = demoListMarketCatalogue(
+			List<MarketCatalogue> marketCatalogues = listMarketCatalogue(
 					rpcOperator, MARKET_CNT, ssoId);
+			long startTime = marketCatalogues.get(0).getDescription()
+					.getMarketTime().getTime();
+			waitFirstMarket(startTime);
 			Queue<String> allMarketIds = new LinkedList<String>();
 			for (MarketCatalogue marketCatalogue : marketCatalogues) {
 				String marketId = marketCatalogue.getMarketId();
@@ -93,12 +105,14 @@ public class DemoClass {
 				try {
 					listMarketBook = rpcOperator.listMarketBook(marketIds,
 							priceProjection, OrderProjection.ALL,
-							MatchProjection.NO_ROLLUP, "US", appKey, ssoId);
-					// TODO: check assumption that if not found marketId nothing
-					// will returns
+							MatchProjection.NO_ROLLUP, MARKET_COUNTRY, appKey,
+							ssoId);
 					int activeMarketsCount = marketIds.size();
 					for (MarketBook marketBook : listMarketBook) {
-						if (marketBook.getStatus().equalsIgnoreCase("suspended") || marketBook.getStatus().equalsIgnoreCase("closed")) {
+						if (marketBook.getStatus()
+								.equalsIgnoreCase("suspended")
+								|| marketBook.getStatus().equalsIgnoreCase(
+										"closed")) {
 							activeMarketsCount--;
 						}
 					}
@@ -130,12 +144,11 @@ public class DemoClass {
 						Double totalMatched = runner.getTotalMatched();
 						ExchangePrices ex = runner.getEx();
 						StartingPrices sp = runner.getSp();
-						// TODO: sp may be null
-						// TODO: uncomment
 						StartPrice startPrice = null;
-//						new StartPrice(
-//								sp.getActualSP(), sp.getFarPrice(),
-//								sp.getNearPrice());
+						if (sp != null) {
+							startPrice = new StartPrice(sp.getActualSP(),
+									sp.getFarPrice(), sp.getNearPrice());
+						}
 						// TODO: use Calendar!!!
 						long timestamp = System.currentTimeMillis();
 						HorseStatBean horse = new HorseStatBean(totalMatched,
@@ -143,14 +156,14 @@ public class DemoClass {
 						try {
 							String doc = om.writeValueAsString(horse);
 							// TODO: think about async
-							// cbClient.set(
-							// marketId + "_" + selectionId + "_" + num,
-							// doc, PersistTo.ZERO).get();
+							cbClient.set(
+									marketId + "_" + selectionId + "_" + num,
+									doc, PersistTo.ZERO).get();
 						} catch (JsonProcessingException e) {
 							e.printStackTrace();
-							// } catch (InterruptedException e) {
-							// e.printStackTrace();
-							// } catch (ExecutionException e) {
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						} catch (ExecutionException e) {
 							e.printStackTrace();
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -159,11 +172,45 @@ public class DemoClass {
 				}
 			}
 		} finally {
-//			cbClient.shutdown();
+			// cbClient.shutdown();
 		}
 	}
 
-	public static List<MarketCatalogue> demoListMarketCatalogue(
+	private static void waitFirstMarket(long startTime) {
+		long HOUR_IN_MILLIS = 60L * 60L * 1000L;
+		long timeToStart = startTime - System.currentTimeMillis()
+				- HOUR_IN_MILLIS;
+		if (timeToStart > HOUR_IN_MILLIS) {
+			long sleepTime = timeToStart - HOUR_IN_MILLIS;
+			log.info("Sleeping time - {}", sleepTime);
+			// keep alive every 10 seconds
+			long period = 10000L;
+			int cntOfKeepAlivedRequests = (int) (sleepTime / 10000L);
+			while (cntOfKeepAlivedRequests > 0) {
+				try {
+					Thread.sleep(period);
+					MarketFilter filter = new MarketFilter();
+					filter.setInPlayOnly(true);
+					rpcOperator.listEventTypes(filter,
+							AccountConstants.APP_KEY, ssoId);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				} catch (APINGException e) {
+					log.error("Exception while keepAlived: {}", e);
+					e.printStackTrace();
+				}
+				cntOfKeepAlivedRequests--;
+			}
+			// working sleep
+			// try {
+			// Thread.sleep(timeToStart - HOUR_IN_MILLIS);
+			// } catch (InterruptedException e1) {
+			// e1.printStackTrace();
+			// }
+		}
+	}
+
+	public static List<MarketCatalogue> listMarketCatalogue(
 			ApiNgJsonRpcOperations rpcOperator, String maxResult,
 			String sessionToken) {
 		final String ssoId = sessionToken;
@@ -174,25 +221,19 @@ public class DemoClass {
 		eventTypeIds.add(ApplicationConstants.HORSE_EVENT_TYPE);
 		filter.setEventTypeIds(eventTypeIds);
 		Set<String> marketCountries = new HashSet<String>();
-		marketCountries.add("US");
+		marketCountries.add(MARKET_COUNTRY);
 		filter.setMarketCountries(marketCountries);
 		TimeRange time = new TimeRange();
-//		 Calendar calendar = Calendar.getInstance(TimeZone
-//		 .getTimeZone("Etc/UTC"));
 		time.setFrom(new Date());
-		// calendar.set(Calendar.HOUR_OF_DAY, 23);
-		// calendar.set(Calendar.MINUTE, 59);
-		// calendar.set(Calendar.SECOND, 59);
-		// time.setTo(calendar.getTime());
 		filter.setMarketStartTime(time);
 		Set<String> marketTypeCodes = new HashSet<String>();
 		marketTypeCodes.add("WIN");
 		// marketTypeCodes.add("PLACE");
 		filter.setMarketTypeCodes(marketTypeCodes);
 		Set<MarketProjection> marketProjection = new HashSet<MarketProjection>();
-		marketProjection.add(MarketProjection.RUNNER_DESCRIPTION);
+		// marketProjection.add(MarketProjection.RUNNER_DESCRIPTION);
 		marketProjection.add(MarketProjection.MARKET_DESCRIPTION);
-
+		marketProjection.add(MarketProjection.MARKET_START_TIME);
 		final String MAX_RESULT = maxResult;
 		List<MarketCatalogue> listMarketCatalogue = null;
 		try {
@@ -221,8 +262,9 @@ public class DemoClass {
 		} catch (IOException e) {
 			log.error("Exception while processing session token: {}", e);
 		}
-//		return sessionToken;
-		return "OpUSjth8F6Xvk+ZMjHgp1gVoxi4NzXd33D8sYOtt70o=";
+		// return sessionToken;
+		return "eVeCnQuQnR6DwWPQ5jo10P2o/z1h8UHSIT0M9nvChnM=";
+		// return "OpUSjth8F6Xvk+ZMjHgp1gVoxi4NzXd33D8sYOtt70o=";
 		// return "rttaPMbihBtf2Qh/II3TfjKkK1eToBY3Q3bL8Y2NoTg=";
 		// return "uZlBpp+PxF1YkKVtpGHLbYoviTh3MZwQm/E9Xxm3yWI=";
 	}

@@ -2,10 +2,15 @@ package com.betfair.aping.entities;
 
 import java.util.List;
 
-public class ExchangePrices {
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+public class ExchangePrices {
+	
+	@JsonProperty("atb")
 	private List<PriceSize> availableToBack;
+	@JsonProperty("atl")
 	private List<PriceSize> availableToLay;
+	@JsonProperty("tv")
 	private List<PriceSize> tradedVolume;
 
 	public List<PriceSize> getAvailableToBack() {
