@@ -71,7 +71,6 @@ public class ApiNgJsonRpcOperations extends ApiNgOperations {
 		String result = getInstance().makeRequest(
 				ApiNgOperation.LISTMARKETBOOK.getOperationName(), params,
 				appKey, ssoId);
-		System.out.println("\nResponse: " + result);
 
 		ListMarketBooksContainer container = JsonConverter.convertFromJson(
 				result, ListMarketBooksContainer.class);
@@ -98,7 +97,6 @@ public class ApiNgJsonRpcOperations extends ApiNgOperations {
 				ApiNgOperation.LISTMARKETCATALOGUE.getOperationName(), params,
 				appKey, ssoId);
 		// if (ApiNGDemo.isDebug())
-		System.out.println("\nResponse: " + result);
 
 		ListMarketCatalogueContainer container = JsonConverter.convertFromJson(
 				result, ListMarketCatalogueContainer.class);
@@ -145,8 +143,6 @@ public class ApiNgJsonRpcOperations extends ApiNgOperations {
 		request.setParams(params);
 
 		requestString = JsonConverter.convertToJson(request);
-
-		System.out.println("\nRequest " + operation + " : " + requestString);
 
 		// We need to pass the "sendPostRequest" method a string in util format:
 		// requestString
