@@ -42,13 +42,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class DemoClass {
+public class StatCollector {
 
 	private static final String MARKET_COUNTRY = "GB";
 
 	private static final String SESSION_TOKEN = "sessionToken";
 
-	private static final Logger log = LoggerFactory.getLogger(DemoClass.class);
+	private static final Logger log = LoggerFactory.getLogger(StatCollector.class);
 	private static final ObjectMapper om = new ObjectMapper();
 	private static final CouchbaseClient cbClient = CouchbaseConnector
 			.getClient("horses");
