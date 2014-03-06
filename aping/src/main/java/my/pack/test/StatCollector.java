@@ -145,6 +145,8 @@ public class StatCollector {
 						int realCntOfRunners = 0;
 						if (runners.size() < RUNNERS_CNT) {
 							realCntOfRunners = runners.size();
+						} else {
+							realCntOfRunners = RUNNERS_CNT;
 						}
 						for (int i = 0; i < realCntOfRunners; i++) {
 							Runner runner = runners.get(i);
