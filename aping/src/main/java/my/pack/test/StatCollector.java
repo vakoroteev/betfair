@@ -81,9 +81,9 @@ public class StatCollector {
 				if (marketCounters.get(marketId) == null) {
 					marketCounters.put(marketId, 0);
 				}
-//				System.out.println(marketCatalogue.getMarketName());
-//				System.out.println(marketCatalogue.getDescription()
-//						.getMarketTime().getTime());
+				// System.out.println(marketCatalogue.getMarketName());
+				// System.out.println(marketCatalogue.getDescription()
+				// .getMarketTime().getTime());
 			}
 			// Prepare params for listMarketBook
 			List<String> marketIds = new ArrayList<String>();
@@ -133,16 +133,20 @@ public class StatCollector {
 					} catch (APINGException e) {
 						e.printStackTrace();
 					}
-//					for (MarketBook marketBook : listMarketBook) {
-//						System.out.print(marketBook.getMarketId() + ", ");
-//					}
+					// for (MarketBook marketBook : listMarketBook) {
+					// System.out.print(marketBook.getMarketId() + ", ");
+					// }
 					for (MarketBook marketBook : listMarketBook) {
 						String marketId = marketBook.getMarketId();
 						Integer cnt = marketCounters.get(marketId);
 						String num = String.valueOf(cnt);
 						marketCounters.put(marketId, ++cnt);
 						List<Runner> runners = marketBook.getRunners();
-						for (int i = 0; i < RUNNERS_CNT; i++) {
+						int realCntOfRunners = 0;
+						if (runners.size() < RUNNERS_CNT) {
+							realCntOfRunners = runners.size();
+						}
+						for (int i = 0; i < realCntOfRunners; i++) {
 							Runner runner = runners.get(i);
 							Long selectionId = runner.getSelectionId();
 							Double totalMatched = runner.getTotalMatched();
@@ -273,7 +277,8 @@ public class StatCollector {
 			log.error("Exception while processing session token: {}", e);
 		}
 		// return sessionToken;
-		return "eVeCnQuQnR6DwWPQ5jo10P2o/z1h8UHSIT0M9nvChnM=";
+		return "3L+/wQZyysileYL7TaV4kIVGaYNzh4pJyzeJGO9EAG0=";
+		// return "eVeCnQuQnR6DwWPQ5jo10P2o/z1h8UHSIT0M9nvChnM=";
 		// return "OpUSjth8F6Xvk+ZMjHgp1gVoxi4NzXd33D8sYOtt70o=";
 		// return "rttaPMbihBtf2Qh/II3TfjKkK1eToBY3Q3bL8Y2NoTg=";
 		// return "uZlBpp+PxF1YkKVtpGHLbYoviTh3MZwQm/E9Xxm3yWI=";
