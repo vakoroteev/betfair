@@ -122,7 +122,7 @@ public class StatCollector {
 							marketIds.remove(0);
 							if (allMarketIds.peek() != null) {
 								String poll = allMarketIds.poll();
-								log.info("New makret is monitoring: ", poll);
+								log.info("New makret is monitoring: {}", poll);
 								marketIds.add(poll);
 								activeMarketsCount++;
 							} else {
@@ -200,10 +200,13 @@ public class StatCollector {
 					filter.setInPlayOnly(true);
 					rpcOperator.listEventTypes(filter,
 							AccountConstants.APP_KEY, ssoId);
+					log.info("Remain {} periods", cntOfKeepAlivedRequests);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				} catch (APINGException e) {
 					log.error("Exception while keepAlived: {}", e);
+					e.printStackTrace();
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				cntOfKeepAlivedRequests--;
