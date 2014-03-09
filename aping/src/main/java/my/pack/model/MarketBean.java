@@ -6,6 +6,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Meta information about market.
+ * 
+ * @author VLD
+ * 
+ */
 @JsonInclude(Include.NON_NULL)
 public class MarketBean {
 
@@ -19,6 +25,14 @@ public class MarketBean {
 	private ArrayList<Long> horsesId;
 	@JsonProperty("cnt")
 	private Integer cntOfProbes;
+	@JsonProperty("val")
+	/**
+	 * OK - successfully validating
+	 * WARN - validating with warnings
+	 */
+	private String statusOfValidate;
+	@JsonProperty("proc")
+	private Boolean processed;
 
 	public MarketBean() {
 
@@ -26,13 +40,15 @@ public class MarketBean {
 
 	public MarketBean(Long marketStartTime, Long startMonitoringTime,
 			Long endMonitoringTime, ArrayList<Long> horsesId,
-			Integer cntOfProbes) {
+			Integer cntOfProbes, String validated, Boolean processed) {
 		super();
 		this.marketStartTime = marketStartTime;
 		this.startMonitoringTime = startMonitoringTime;
 		this.endMonitoringTime = endMonitoringTime;
 		this.horsesId = horsesId;
 		this.cntOfProbes = cntOfProbes;
+		this.setValidated(validated);
+		this.setProcessed(processed);
 	}
 
 	public Long getMarketStartTime() {
@@ -73,6 +89,22 @@ public class MarketBean {
 
 	public void setCntOfProbes(Integer cntOfProbes) {
 		this.cntOfProbes = cntOfProbes;
+	}
+
+	public String getValidated() {
+		return statusOfValidate;
+	}
+
+	public void setValidated(String validated) {
+		this.statusOfValidate = validated;
+	}
+
+	public Boolean getProcessed() {
+		return processed;
+	}
+
+	public void setProcessed(Boolean processed) {
+		this.processed = processed;
 	}
 
 }

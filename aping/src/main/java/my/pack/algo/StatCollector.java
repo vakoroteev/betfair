@@ -1,4 +1,4 @@
-package my.pack.test;
+package my.pack.algo;
 
 import java.io.IOException;
 import java.util.ArrayList;

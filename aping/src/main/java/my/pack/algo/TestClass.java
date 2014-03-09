@@ -1,4 +1,4 @@
-package my.pack.test;
+package my.pack.algo;
 
 
 /**
