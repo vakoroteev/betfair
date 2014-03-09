@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import my.pack.model.HorseStatBean;
+import my.pack.model.MarketBean;
 import my.pack.model.StartPrice;
 import my.pack.util.AccountConstants;
 import my.pack.util.ApplicationConstants;
@@ -63,14 +64,10 @@ public class StatCollector {
 			final String MARKET_CNT = "20";
 			final int MARKET_CNT_FOR_MARKET_BOOK = 5;
 
-			try {
-				Thread.sleep(10000L);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
 			HashMap<String, Integer> marketCounters = new HashMap<String, Integer>();
 			List<MarketCatalogue> marketCatalogues = listMarketCatalogue(
 					rpcOperator, MARKET_CNT, ssoId);
+			createMarketsDescriptions(marketCatalogues);
 			long startTime = marketCatalogues.get(0).getDescription()
 					.getMarketTime().getTime();
 			waitFirstMarket(startTime);
@@ -81,9 +78,6 @@ public class StatCollector {
 				if (marketCounters.get(marketId) == null) {
 					marketCounters.put(marketId, 0);
 				}
-				// System.out.println(marketCatalogue.getMarketName());
-				// System.out.println(marketCatalogue.getDescription()
-				// .getMarketTime().getTime());
 			}
 			// Prepare params for listMarketBook
 			List<String> marketIds = new ArrayList<String>();
@@ -91,6 +85,11 @@ public class StatCollector {
 				// TODO: if poll return null???
 				marketIds.add(allMarketIds.poll());
 			}
+
+			for (String marketId : marketIds) {
+				setStartMonitoringTime(marketId);
+			}
+
 			boolean observ = true;
 			while (observ) {
 				try {
@@ -119,26 +118,29 @@ public class StatCollector {
 							}
 						}
 						while (activeMarketsCount < marketIds.size()) {
-							marketIds.remove(0);
+							String marketId = marketIds.remove(0);
+							setEndMonitoringTimeAndCntOfProbes(marketId,
+									marketCounters.get(marketId));
 							if (allMarketIds.peek() != null) {
 								String poll = allMarketIds.poll();
 								log.info("New makret is monitoring: {}", poll);
 								marketIds.add(poll);
 								activeMarketsCount++;
 							} else {
-								// TODO: stop observer or something else
+								// stop observer or maybe something else
 								observ = false;
 							}
 						}
 					} catch (APINGException e) {
 						e.printStackTrace();
 					}
-					// for (MarketBook marketBook : listMarketBook) {
-					// System.out.print(marketBook.getMarketId() + ", ");
-					// }
 					for (MarketBook marketBook : listMarketBook) {
 						String marketId = marketBook.getMarketId();
 						Integer cnt = marketCounters.get(marketId);
+						if (cnt == 0) {
+							setHorsesAndStartMonitoringTime(marketId,
+									marketBook.getRunners(), RUNNERS_CNT);
+						}
 						String num = String.valueOf(cnt);
 						marketCounters.put(marketId, ++cnt);
 						List<Runner> runners = marketBook.getRunners();
@@ -149,6 +151,7 @@ public class StatCollector {
 							realCntOfRunners = RUNNERS_CNT;
 						}
 						for (int i = 0; i < realCntOfRunners; i++) {
+							// TODO: if runner not actual?
 							Runner runner = runners.get(i);
 							Long selectionId = runner.getSelectionId();
 							Double totalMatched = runner.getTotalMatched();
@@ -166,15 +169,9 @@ public class StatCollector {
 							try {
 								String doc = om.writeValueAsString(horse);
 								// TODO: think about async
-								cbClient.set(
-										marketId + "_" + selectionId + "_"
-												+ num, doc, PersistTo.ZERO)
-										.get();
+								cbSet(marketId + "_" + selectionId + "_" + num,
+										doc);
 							} catch (JsonProcessingException e) {
-								e.printStackTrace();
-							} catch (InterruptedException e) {
-								e.printStackTrace();
-							} catch (ExecutionException e) {
 								e.printStackTrace();
 							} catch (Exception e) {
 								e.printStackTrace();
@@ -187,6 +184,84 @@ public class StatCollector {
 			}
 		} finally {
 			cbClient.shutdown();
+		}
+	}
+
+	private static void setHorsesAndStartMonitoringTime(String marketId,
+			List<Runner> runners, int runnersCnt) {
+		String cbMarketId = "m_" + marketId;
+		String doc = (String) cbClient.get(cbMarketId);
+		MarketBean market;
+		try {
+			market = om.readValue(doc, MarketBean.class);
+			market.setStartMonitoringTime(System.currentTimeMillis());
+			int realCntOfRunners = 0;
+			if (runners.size() < runnersCnt) {
+				realCntOfRunners = runners.size();
+			} else {
+				realCntOfRunners = runnersCnt;
+			}
+			ArrayList<Long> horsesId = new ArrayList<Long>();
+			for (int i = 0; i < realCntOfRunners; i++) {
+				horsesId.add(runners.get(i).getSelectionId());
+			}
+			market.setHorsesId(horsesId);
+			doc = om.writeValueAsString(market);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		cbSet(cbMarketId, doc);
+	}
+
+	private static void setEndMonitoringTimeAndCntOfProbes(String marketId,
+			Integer cntOfProbes) {
+		String id = "m_" + marketId;
+		String doc = (String) cbClient.get(id);
+		if (doc != null) {
+			try {
+				MarketBean market = om.readValue(doc, MarketBean.class);
+				market.setEndMonitoringTime(System.currentTimeMillis());
+				market.setCntOfProbes(cntOfProbes);
+				doc = om.writeValueAsString(market);
+				cbSet(id, doc);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void setStartMonitoringTime(String marketId) {
+		String docId = "m_" + marketId;
+		String doc = (String) cbClient.get(docId);
+		if (doc != null) {
+			try {
+				MarketBean market = om.readValue(doc, MarketBean.class);
+				market.setStartMonitoringTime(System.currentTimeMillis());
+				doc = om.writeValueAsString(market);
+				cbSet(docId, doc);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void createMarketsDescriptions(
+			List<MarketCatalogue> marketCatalogues) {
+		String docId = null;
+		Long marketStartTime;
+		String docBody = null;
+		MarketBean market = new MarketBean();
+		for (MarketCatalogue marketCatalogue : marketCatalogues) {
+			docId = "m_" + marketCatalogue.getMarketId();
+			marketStartTime = marketCatalogue.getDescription().getMarketTime()
+					.getTime();
+			market.setMarketStartTime(marketStartTime);
+			try {
+				docBody = om.writeValueAsString(market);
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
+			cbSet(docId, docBody);
 		}
 	}
 
@@ -217,12 +292,6 @@ public class StatCollector {
 				}
 				cntOfKeepAlivedRequests--;
 			}
-			// working sleep
-			// try {
-			// Thread.sleep(timeToStart - HOUR_IN_MILLIS);
-			// } catch (InterruptedException e1) {
-			// e1.printStackTrace();
-			// }
 		}
 	}
 
@@ -279,10 +348,34 @@ public class StatCollector {
 			log.error("Exception while processing session token: {}", e);
 		}
 		// return sessionToken;
-		return "3L+/wQZyysileYL7TaV4kIVGaYNzh4pJyzeJGO9EAG0=";
+		return "SKJch1n1rrOg3WfP9F5DVJYj4DTmlcUDBvmOtAnrNxQ=";
+		// return "3L+/wQZyysileYL7TaV4kIVGaYNzh4pJyzeJGO9EAG0=";
 		// return "eVeCnQuQnR6DwWPQ5jo10P2o/z1h8UHSIT0M9nvChnM=";
 		// return "OpUSjth8F6Xvk+ZMjHgp1gVoxi4NzXd33D8sYOtt70o=";
 		// return "rttaPMbihBtf2Qh/II3TfjKkK1eToBY3Q3bL8Y2NoTg=";
 		// return "uZlBpp+PxF1YkKVtpGHLbYoviTh3MZwQm/E9Xxm3yWI=";
+	}
+
+	/**
+	 * PersistTo equals to PersistTo.ZERO
+	 * 
+	 * @param docId
+	 * @param docBody
+	 */
+	private static void cbSet(String docId, String docBody) {
+		try {
+			cbClient.set(docId, docBody, PersistTo.ZERO).get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@SuppressWarnings("unused")
+	private static void cbSet(String docId, String docBody, PersistTo persist) {
+		try {
+			cbClient.set(docId, docBody, persist).get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
 	}
 }
