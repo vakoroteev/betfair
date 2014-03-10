@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -91,6 +92,7 @@ public class StatCollector {
 			}
 
 			boolean observ = true;
+			HashMap<String, Integer> mapToRemove = new HashMap<String, Integer>();
 			while (observ) {
 				try {
 					PriceProjection priceProjection = new PriceProjection();
@@ -108,7 +110,6 @@ public class StatCollector {
 								priceProjection, OrderProjection.ALL,
 								MatchProjection.NO_ROLLUP, MARKET_COUNTRY,
 								appKey, ssoId);
-						int activeMarketsCount = marketIds.size();
 						for (MarketBook marketBook : listMarketBook) {
 							// TODO: add counter on status. Stop after 5
 							// suspended or closed
@@ -116,24 +117,44 @@ public class StatCollector {
 									"suspended")
 									|| marketBook.getStatus().equalsIgnoreCase(
 											"closed")) {
+								// to avoid fluctuations
+								Integer cntOfNonActive = mapToRemove
+										.get(marketBook.getMarketId());
+								if (cntOfNonActive != null) {
+									mapToRemove.put(marketBook.getMarketId(),
+											++cntOfNonActive);
+								} else {
+									mapToRemove
+											.put(marketBook.getMarketId(), 1);
+								}
 								log.info("Market {} was {}",
 										marketBook.getMarketId(),
 										marketBook.getStatus());
-								activeMarketsCount--;
 							}
 						}
-						while (activeMarketsCount < marketIds.size()) {
-							String marketId = marketIds.remove(0);
-							setEndMonitoringTimeAndCntOfProbes(marketId,
-									marketCounters.get(marketId));
-							if (allMarketIds.peek() != null) {
-								String poll = allMarketIds.poll();
-								log.info("New makret is monitoring: {}", poll);
-								marketIds.add(poll);
-								activeMarketsCount++;
-							} else {
-								// stop observer or maybe something else
-								observ = false;
+
+						for (Entry<String, Integer> en : mapToRemove.entrySet()) {
+							if (en.getValue() == 5) {
+								for (int i = 0; i < marketIds.size(); i++) {
+									if (marketIds.equals(en.getKey())) {
+										String marketId = marketIds.remove(i);
+										mapToRemove.remove(en.getKey());
+										setEndMonitoringTimeAndCntOfProbes(
+												marketId,
+												marketCounters.get(marketId));
+										if (allMarketIds.peek() != null) {
+											String poll = allMarketIds.poll();
+											log.info(
+													"New makret is monitoring: {}",
+													poll);
+											marketIds.add(poll);
+										} else {
+											// stop observer or maybe something
+											// else
+											observ = false;
+										}
+									}
+								}
 							}
 						}
 					} catch (APINGException e) {
