@@ -134,9 +134,9 @@ public class StatCollector {
 						}
 
 						for (Entry<String, Integer> en : mapToRemove.entrySet()) {
-							if (en.getValue() == 5) {
+							if (en.getValue() > 20) {
 								for (int i = 0; i < marketIds.size(); i++) {
-									if (marketIds.equals(en.getKey())) {
+									if (marketIds.get(0).equals(en.getKey())) {
 										String marketId = marketIds.remove(i);
 										mapToRemove.remove(en.getKey());
 										setEndMonitoringTimeAndCntOfProbes(
