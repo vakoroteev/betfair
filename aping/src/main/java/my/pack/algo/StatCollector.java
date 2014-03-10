@@ -110,10 +110,15 @@ public class StatCollector {
 								appKey, ssoId);
 						int activeMarketsCount = marketIds.size();
 						for (MarketBook marketBook : listMarketBook) {
+							// TODO: add counter on status. Stop after 5
+							// suspended or closed
 							if (marketBook.getStatus().equalsIgnoreCase(
 									"suspended")
 									|| marketBook.getStatus().equalsIgnoreCase(
 											"closed")) {
+								log.info("Market {} was {}",
+										marketBook.getMarketId(),
+										marketBook.getStatus());
 								activeMarketsCount--;
 							}
 						}
