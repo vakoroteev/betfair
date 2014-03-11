@@ -28,7 +28,8 @@ public class MarketBean {
 	@JsonProperty("val")
 	/**
 	 * OK - successfully validating
-	 * WARN - validating with warnings
+	 * WARN - validating with warnings, e.g. big delta
+	 * FAIL - some fields doesn't exist 
 	 */
 	private String statusOfValidate;
 	@JsonProperty("proc")
