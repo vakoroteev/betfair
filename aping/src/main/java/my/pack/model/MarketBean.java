@@ -33,6 +33,8 @@ public class MarketBean {
 	private String statusOfValidate;
 	@JsonProperty("proc")
 	private Boolean processed;
+	@JsonProperty("missedTime")
+	private Long missedTime;
 
 	public MarketBean() {
 
@@ -40,7 +42,7 @@ public class MarketBean {
 
 	public MarketBean(Long marketStartTime, Long startMonitoringTime,
 			Long endMonitoringTime, ArrayList<Long> horsesId,
-			Integer cntOfProbes, String validated, Boolean processed) {
+			Integer cntOfProbes, String validated, Boolean processed, Long missedTime) {
 		super();
 		this.marketStartTime = marketStartTime;
 		this.startMonitoringTime = startMonitoringTime;
@@ -49,6 +51,7 @@ public class MarketBean {
 		this.cntOfProbes = cntOfProbes;
 		this.setValidated(validated);
 		this.setProcessed(processed);
+		this.setMissedTime(missedTime);
 	}
 
 	public Long getMarketStartTime() {
@@ -105,6 +108,14 @@ public class MarketBean {
 
 	public void setProcessed(Boolean processed) {
 		this.processed = processed;
+	}
+
+	public Long getMissedTime() {
+		return missedTime;
+	}
+
+	public void setMissedTime(Long missedTime) {
+		this.missedTime = missedTime;
 	}
 
 }

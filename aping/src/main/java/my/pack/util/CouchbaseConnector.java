@@ -8,6 +8,9 @@ import java.util.Map.Entry;
 
 import net.spy.memcached.FailureMode;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.couchbase.client.CouchbaseClient;
 import com.couchbase.client.CouchbaseConnectionFactory;
 import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
@@ -15,6 +18,8 @@ import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
 public class CouchbaseConnector {
 
 	public static HashMap<String, CouchbaseClient> clients = new HashMap<String, CouchbaseClient>();
+	private static final Logger log = LoggerFactory
+			.getLogger(CouchbaseConnector.class);
 
 	public static CouchbaseClient getClient(String bucketName) {
 		if (clients.get(bucketName) == null) {
@@ -53,5 +58,4 @@ public class CouchbaseConnector {
 			shutdownClient(client.getKey());
 		}
 	}
-
 }
