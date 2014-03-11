@@ -9,6 +9,9 @@ import my.pack.util.CouchbaseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.couchbase.client.protocol.views.Paginator;
+import com.couchbase.client.protocol.views.ViewResponse;
+import com.couchbase.client.protocol.views.ViewRow;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -30,13 +33,21 @@ public class StatCollectorValidator {
 	private static final long DELTA = 10000L;
 
 	public static void main(String[] args) {
-		// Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
-		// while (scroll.hasNext()) {
-		// ViewResponse resp = scroll.next();
-		// for (ViewRow viewRow : resp) {
-		// }
-		// }
-		validateMarket("m_1.113184775");
+		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
+		try {
+			while (scroll.hasNext()) {
+				ViewResponse resp = scroll.next();
+				for (ViewRow viewRow : resp) {
+					log.info("Validate market: {}", viewRow.getId()
+							.substring(2));
+					validateMarket(viewRow.getId());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			cbClient.shutdown();
+		}
 	}
 
 	// WARNING: check only 1st horse
@@ -52,8 +63,18 @@ public class StatCollectorValidator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		market.getMarketStartTime();
-		market.getEndMonitoringTime();
+		if (market.getMarketStartTime() == null
+				|| market.getEndMonitoringTime() == null
+				|| market.getStartMonitoringTime() == null) {
+			market.setValidated("FAIL");
+			try {
+				cbClient.set(marketDocId, om.writeValueAsString(market));
+				log.error("Market {} is failed", marketDocId);
+				return;
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
+		}
 		if (market.getMarketStartTime().longValue() < market
 				.getEndMonitoringTime().longValue()) {
 			market.setValidated("OK");
@@ -90,8 +111,8 @@ public class StatCollectorValidator {
 					timestampNext = horse.getTimestamp();
 					if (timestampNext - timestampPrev > DELTA) {
 						delta += (timestampNext - timestampPrev);
-						System.out.println();
-						log.info("{}: {} - {}", i,timestampNext, timestampPrev);
+						// log.info("{}: {} - {}", i, timestampNext,
+						// timestampPrev);
 					}
 					timestampPrev = timestampNext;
 				}
@@ -111,6 +132,5 @@ public class StatCollectorValidator {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-		cbClient.shutdown();
 	}
 }
