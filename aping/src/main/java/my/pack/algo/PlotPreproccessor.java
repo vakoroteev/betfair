@@ -28,12 +28,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class PlotPreproccessor {
 
 	private static final String MARKET_ID = "1.113191773";
-	private static final CouchbaseHandler cbClient = null;
-	// new CouchbaseHandler(
-	// "horses");
+	private static final CouchbaseHandler cbClient = new CouchbaseHandler(
+			"horses");
 	private static final ObjectMapper om = new ObjectMapper();
 
-	public static void _main(String[] args) {
+	public static void main(String[] args) {
 		String marketDoc = cbClient.get("m_" + MARKET_ID);
 		MarketBean market = null;
 		try {
@@ -53,13 +52,6 @@ public class PlotPreproccessor {
 				cntOfProbes, true);
 		HashMap<Double, BufferedWriter> layBw = createOutputFiles(horseDocId,
 				cntOfProbes, false);
-		// BufferedWriter bw = null;
-		// try {
-		// new File("C:\\" + horseDocId).mkdirs();
-		// bw = new BufferedWriter(new FileWriter("C:\\"+horseDocId+"\\"));
-		// } catch (IOException e1) {
-		// e1.printStackTrace();
-		// }
 		for (int i = 0; i < cntOfProbes; i++) {
 			String horseDoc = cbClient.get(horseDocId + i);
 			try {
@@ -67,8 +59,6 @@ public class PlotPreproccessor {
 						HorseStatBean.class);
 				long timestamp = horse.getTimestamp();
 				ExchangePrices ex = horse.getEx();
-				// double totalMatched = horse.getTotalMatched();
-				// StartPrice startPrice = horse.getStartPrice();
 				/**
 				 * Columns: 1st - timestamp, 2nd - avb, 3rd - avl, 4th - tot
 				 * mat, 5th - startPrice
