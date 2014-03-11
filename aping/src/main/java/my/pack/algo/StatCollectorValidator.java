@@ -100,7 +100,6 @@ public class StatCollectorValidator {
 				e.printStackTrace();
 			}
 		}
-		// TODO: less or less-equal?
 		long delta = 0;
 		for (int i = 1; i < cntOfProbes; i++) {
 			try {
