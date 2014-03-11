@@ -36,7 +36,7 @@ public class StatCollectorValidator {
 		// for (ViewRow viewRow : resp) {
 		// }
 		// }
-		validateMarket("m_1.113193494");
+		validateMarket("m_1.113184775");
 	}
 
 	// WARNING: check only 1st horse
@@ -83,7 +83,7 @@ public class StatCollectorValidator {
 		long delta = 0;
 		for (int i = 1; i < cntOfProbes; i++) {
 			try {
-				horseDoc = cbClient.get(monitoredDocId + cntOfProbes);
+				horseDoc = cbClient.get(monitoredDocId + i);
 				if (horseDoc != null) {
 					HorseStatBean horse = om.readValue(horseDoc,
 							HorseStatBean.class);
@@ -91,7 +91,7 @@ public class StatCollectorValidator {
 					if (timestampNext - timestampPrev > DELTA) {
 						delta += (timestampNext - timestampPrev);
 						System.out.println();
-						log.info("{} - {}", timestampNext, timestampPrev);
+						log.info("{}: {} - {}", i,timestampNext, timestampPrev);
 					}
 					timestampPrev = timestampNext;
 				}
