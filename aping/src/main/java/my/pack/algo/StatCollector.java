@@ -148,7 +148,7 @@ public class StatCollector {
 													"New makret is monitoring: {}",
 													poll);
 											marketIds.add(poll);
-										} else {
+										} else if (marketIds.size() == 0) {
 											// stop observer or maybe something
 											// else
 											observ = false;
@@ -374,8 +374,9 @@ public class StatCollector {
 			log.error("Exception while processing session token: {}", e);
 		}
 		// return sessionToken;
-		return "PP7FnBP8Nk8RfmzBKeLl3ZWgr4afalgRVwmBmB6QFnw=";
-//		return "SKJch1n1rrOg3WfP9F5DVJYj4DTmlcUDBvmOtAnrNxQ=";
+		// return "PP7FnBP8Nk8RfmzBKeLl3ZWgr4afalgRVwmBmB6QFnw=";
+		return "IqU7OKBl4bsUXpgyPFi/BAEntxKo1e8/Dfo4D6tYiLI=";
+		// return "SKJch1n1rrOg3WfP9F5DVJYj4DTmlcUDBvmOtAnrNxQ=";
 		// return "3L+/wQZyysileYL7TaV4kIVGaYNzh4pJyzeJGO9EAG0=";
 		// return "eVeCnQuQnR6DwWPQ5jo10P2o/z1h8UHSIT0M9nvChnM=";
 		// return "OpUSjth8F6Xvk+ZMjHgp1gVoxi4NzXd33D8sYOtt70o=";
